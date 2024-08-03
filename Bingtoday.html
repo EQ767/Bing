@@ -1,172 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Today's Bing Wallpaper</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-      margin: 0;
-    }
-    .wallpaper {
-      margin: 20px auto;
-      max-width: 90%;
-      cursor: pointer;
-      position: relative;
-    }
-    .wallpaper img {
-      max-width: 100%;
-      height: auto;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
-    .wallpaper p {
-      font-size: 1.2em;
-      color: #333;
-    }
-    #overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      color: #fff;
-      text-align: center;
-      padding: 20px;
-      z-index: 1000;
-    }
-    #modal {
-      background: #333;
-      display: inline-block;
-      padding: 20px;
-      max-width: 90%;
-      max-height: 80%;
-      overflow: auto;
-      border-radius: 10px;
-      position: relative;
-    }
-    #modal img {
-      max-width: 100%;
-      height: auto;
-    }
-    #close {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      cursor: pointer;
-      font-size: 24px;
-      color: #fff;
-    }
-    #download {
-      display: block;
-      margin-top: 10px;
-      color: #00f;
-      text-decoration: none;
-      font-size: 1.2em;
-    }
-    #overlay.blur {
-      filter: blur(5px);
-    }
-    #backBtn {
-      display: block;
-      margin: 20px auto;
-      padding: 10px 20px;
-      font-size: 1.2em;
-      color: #fff;
-      background-color: #0078d4;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    #backBtn:hover {
-      background-color: #005a9e;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>必应每日壁纸</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            position: relative;
+        }
+        #wallpaper {
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .copyright {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Today's Bing Wallpaper</h1>
-  <a id="backBtn" href="index.html">Back to Recent Wallpapers</a>
-  <div id="wallpaper" class="wallpaper"></div>
+    <img id="wallpaper" src="" alt="必应每日壁纸">
+    <div class="copyright" id="copyright"></div>
 
-  <div id="overlay">
-    <div id="modal">
-      <span id="close">&times;</span>
-      <img id="modalImage" src="" alt="Detailed Image">
-      <p id="modalTitle"></p>
-      <p id="modalCopyright"></p>
-      <a id="download" href="" download>Download</a>
-    </div>
-  </div>
-
-  <script>
-    // Fetch today's Bing wallpaper data from the new API
-    fetch('https://api.asilu.com/bg/')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log('API Data:', data); // Log API data for debugging
-
-        const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        console.log('Today\'s Date:', today); // Log today's date for debugging
-        
-        const wallpaper = data.images.find(img => img.startdate === today); // Get today's wallpaper
-        const wallpaperContainer = document.getElementById('wallpaper');
-        
-        if (wallpaper) {
-          const img = document.createElement('img');
-          img.src = wallpaper.url;
-          img.alt = 'Bing Wallpaper';
-
-          const copyright = document.createElement('p');
-          copyright.textContent = 'Copyright: ' + wallpaper.copyright;
-
-          wallpaperContainer.appendChild(img);
-          wallpaperContainer.appendChild(copyright);
-          
-          wallpaperContainer.addEventListener('click', () => {
-            const modal = document.getElementById('modal');
-            document.getElementById('modalImage').src = wallpaper.url;
-            document.getElementById('modalTitle').textContent = 'Bing Wallpaper';
-            document.getElementById('modalCopyright').textContent = 'Copyright: ' + wallpaper.copyright;
-            document.getElementById('download').href = wallpaper.url;
-
-            document.getElementById('overlay').style.display = 'block';
-            document.body.classList.add('blur');
-          });
-
-          // Close modal functionality
-          document.getElementById('close').addEventListener('click', () => {
-            document.getElementById('overlay').style.display = 'none';
-            document.body.classList.remove('blur');
-          });
-
-          // Close modal on overlay click
-          document.getElementById('overlay').addEventListener('click', (event) => {
-            if (event.target === document.getElementById('overlay')) {
-              document.getElementById('overlay').style.display = 'none';
-              document.body.classList.remove('blur');
-            }
-          });
-        } else {
-          wallpaperContainer.textContent = 'No wallpaper available for today.';
-        }
-      })
-      .catch(error => {
-        // Handle any errors
-        console.error('Error fetching data:', error);
-        const wallpaperContainer = document.getElementById('wallpaper');
-        wallpaperContainer.textContent = 'Failed to load wallpaper.';
-      });
-  </script>
+    <script>
+        fetch('https://raw.onmicrosoft.cn/Bing-Wallpaper-Action/main/data/zh-CN_all.json')
+            .then(response => response.json())
+            .then(data => {
+                const wallpaper = data.data[0]; // 获取最新的壁纸
+                const wallpaperUrl = 'https://www.bing.com' + wallpaper.url;
+                document.getElementById('wallpaper').src = wallpaperUrl;
+                document.getElementById('copyright').textContent = wallpaper.copyright;
+            })
+            .catch(error => console.error('Error fetching the wallpaper:', error));
+    </script>
 </body>
 </html>
