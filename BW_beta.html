@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bing Wallpaper V2.0-beta</title>
+  <style>
+    /* 基础样式 */
+    body { 
+      background-color: #f0f2f5; 
+      font-family: Arial, sans-serif; 
+      margin: 0; 
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #333;
+    }
+    .button-group {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .button-group button {
+      background-color: #007BFF;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .button-group button:hover {
+      background-color: #0056b3;
+    }
+    #content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+    .card {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      width: 200px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+    .card:hover {
+      transform: scale(1.05);
+    }
+    .card img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+    .card-body {
+      padding: 10px;
+    }
+    .card-title {
+      font-size: 16px;
+      color: #333;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* 模态框样式 */
+    .modal {
+      display: none; 
+      position: fixed; 
+      z-index: 1000; 
+      left: 0;
+      top: 0;
+      width: 100%; 
+      height: 100%; 
+      overflow: auto; 
+      background-color: rgba(0,0,0,0.8); 
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 90%;
+      max-width: 800px;
+      border-radius: 8px;
+      position: relative;
+    }
+    .close {
+      color: #aaa;
+      position: absolute;
+      top: 15px;
+      right: 25px;
+      font-size: 30px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+    }
+    .modal-img {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .modal-title {
+      margin-top: 15px;
+      font-size: 20px;
+      color: #333;
+    }
+    .modal-info {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #555;
+    }
+    .modal-link {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 10px 15px;
+      background-color: #28a745;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+    .modal-link:hover {
+      background-color: #218838;
+    }
+    /* 加载动画 */
+    .loader {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin: 50px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* 响应式设计 */
+    @media (max-width: 600px) {
+      .card {
+        width: 100%;
+      }
+      .modal-content {
+        width: 95%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Bing 壁纸展示</h1>
+    <div class="button-group">
+      <button id="loadRandom">加载随机图片</button>
+      <button id="loadEn">加载 en-US 壁纸列表</button>
+      <button id="loadZh">加载 zh-CN 壁纸列表</button>
+    </div>
+    <div id="content">
+      <!-- 加载动画 -->
+      <div id="loader" class="loader" style="display: none;"></div>
+    </div>
+  </div>
+
+  <!-- 图片详情模态框 -->
+  <div id="imageModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <img id="modalImage" src="" alt="" class="modal-img">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-info" id="modalCopyright"></div>
+      <a id="modalUHD" href="#" target="_blank" class="modal-link">查看 4K 图像</a>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const content = document.getElementById('content');
+      const loader = document.getElementById('loader');
+      const modal = document.getElementById('imageModal');
+      const closeBtn = document.querySelector('.close');
+      const modalImage = document.getElementById('modalImage');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalCopyright = document.getElementById('modalCopyright');
+      const modalUHD = document.getElementById('modalUHD');
+
+      // 显示加载动画
+      function showLoader() {
+        loader.style.display = 'block';
+        content.innerHTML = '';
+      }
+
+      // 隐藏加载动画
+      function hideLoader() {
+        loader.style.display = 'none';
+      }
+
+      // 构建完整图片URL
+      async function buildImageUrl(urlbase, hd) {
+        const infoUrl = 'https://raw.onmicrosoft.cn/Bing-Wallpaper-Action/main/data/info.json';
+        try {
+          const response = await fetch(infoUrl);
+          const info = await response.json();
+          const domain = info.domainList[0]; // 选择第一个域名
+          const hdRes = hd === 'UHD' ? 'UHD' : '1920x1080'; // 优先选择UHD
+          const format = info.format
+                            .replace('{domain}', domain)
+                            .replace('{data.urlbase}', urlbase)
+                            .replace('{hd}', hdRes)
+                            .replace('{ext}', info.ext)
+                            .replace('{query}');
+          return format.startsWith('https') ? format : `https://${format}`;
+        } catch (err) {
+          console.error('构建图片URL时出错:', err);
+          return '';
+        }
+      }
+
+      // 显示模态框
+      function showModal(data, imageUrl) {
+        modalImage.src = imageUrl;
+        modalTitle.textContent = data.title;
+        modalCopyright.innerHTML = `${data.copyright} <a href="${data.copyrightlink}" target="_blank">了解更多</a>`;
+        // 构建UHD图像URL
+        buildImageUrl(data.urlbase, 'UHD').then(uhdUrl => {
+          if (uhdUrl) {
+            modalUHD.href = uhdUrl;
+            modalUHD.style.display = 'inline-block';
+          } else {
+            modalUHD.style.display = 'none';
+          }
+        });
+        modal.style.display = 'flex';
+      }
+
+      // 关闭模态框
+      closeBtn.onclick = () => {
+        modal.style.display = 'none';
+      }
+
+      window.onclick = (event) => {
+        if (event.target == modal) {
+          modal.style.display = 'none';
+        }
+      }
+
+      // 加载随机图片
+      document.getElementById('loadRandom').addEventListener('click', () => {
+        showLoader();
+        fetch('https://api.xsot.cn/bing')
+          .then(response => response.json())
+          .then(data => {
+            hideLoader();
+            if(data.success) {
+              const { image, title } = data.data;
+              const html = `
+                <div class="card">
+                  <img src="${image}" alt="${title}">
+                  <div class="card-body">
+                    <div class="card-title">${title}</div>
+                  </div>
+                </div>
+              `;
+              content.innerHTML = html;
+
+              // 添加点击事件查看详情
+              const card = content.querySelector('.card');
+              card.addEventListener('click', () => {
+                showModal(data.data, image);
+              });
+            } else {
+              content.innerHTML = '<div style="color: red; text-align: center;">加载随机图片失败。</div>';
+            }
+          })
+          .catch(err => {
+            hideLoader();
+            console.error(err);
+            content.innerHTML = '<div style="color: red; text-align: center;">请求发生错误。</div>';
+          });
+      });
+
+      // 加载壁纸列表
+      function loadWallpaperList(url, language) {
+        showLoader();
+        fetch(url)
+          .then(response => response.json())
+          .then(data => {
+            hideLoader();
+            if(data.success) {
+              let html = '';
+              data.data.forEach(item => {
+                const domain = language === 'en-US' ? 'https://bing.com' : 'https://cn.bing.com';
+                // 构建低分辨率缩略图URL
+                const thumbUrl = `${domain}${item.url}&w=320&h=180`;
+                html += `
+                  <div class="card" data-item='${JSON.stringify(item)}'>
+                    <img src="${thumbUrl}" alt="${item.title}">
+                    <div class="card-body">
+                      <div class="card-title">${item.title}</div>
+                    </div>
+                  </div>
+                `;
+              });
+              content.innerHTML = html;
+
+              // 添加点击事件查看详情
+              document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('click', () => {
+                  const item = JSON.parse(card.getAttribute('data-item'));
+                  const fullUrl = `https://cn.bing.com${item.url}`; // 默认使用低分辨率URL
+                  buildImageUrl(item.urlbase, 'UHD').then(uhdUrl => {
+                    const imageUrl = uhdUrl || fullUrl;
+                    showModal(item, imageUrl);
+                  });
+                });
+              });
+            } else {
+              content.innerHTML = '<div style="color: red; text-align: center;">加载壁纸列表失败。</div>';
+            }
+          })
+          .catch(err => {
+            hideLoader();
+            console.error(err);
+            content.innerHTML = '<div style="color: red; text-align: center;">请求发生错误。</div>';
+          });
+      }
+
+      // 加载 en-US 壁纸列表
+      document.getElementById('loadEn').addEventListener('click', () => {
+        loadWallpaperList(
+          'https://raw.onmicrosoft.cn/Bing-Wallpaper-Action/main/data/en-US_all.json', 
+          'en-US'
+        );
+      });
+
+      // 加载 zh-CN 壁纸列表
+      document.getElementById('loadZh').addEventListener('click', () => {
+        loadWallpaperList(
+          'https://raw.onmicrosoft.cn/Bing-Wallpaper-Action/main/data/zh-CN_all.json', 
+          'zh-CN'
+        );
+      });
+    });
+  </script>
+</body>
+</html>
